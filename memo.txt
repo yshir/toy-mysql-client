@@ -1,0 +1,7 @@
+```console
+docker compose exec db mysql -u root -proot -h 127.0.0.1 -D test --protocol=TCP --ssl-mode=DISABLED -e "select * from users;"
+```
+
+```console
+hexdump -C ./docker/tcpdump/captures/mysql_capture.pcap
+```
