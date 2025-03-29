@@ -1,0 +1,18 @@
+services:
+  db:
+    image: mysql:8.3
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=test
+    command: --default-authentication-plugin=mysql_native_password
+    ports:
+      - '3306:3306'
+    volumes:
+      - ./docker/db/initdb.d:/docker-entrypoint-initdb.d
+
+  tcpdump:
+    image: nicolaka/netshoot
+    network_mode: "service:db"
+    command: tcpdump -i lo -nn -s 0 -v tcp port 3306 -w /tmp/mysql_capture.pcap
+    volumes:
+      - ./docker/tcpdump/captures:/tmp
