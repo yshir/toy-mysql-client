@@ -1,10 +1,18 @@
 use std::io::{self, Write};
 
 use anyhow::Result;
+use toy_mysql_client::connection::{Connection, ConnectionOptions};
 
 fn main() -> Result<()> {
     env_logger::init();
 
+    let _ = Connection::new(ConnectionOptions {
+        username: String::from("root"),
+        password: String::from("root"),
+        database: String::from("test"),
+        host: String::from("127.0.0.1"),
+        port: 3306,
+    })?;
     let mut buf = String::new();
     loop {
         print!("mysql> ");
