@@ -7,7 +7,10 @@ use std::{
 use anyhow::{Result, bail};
 use log::debug;
 
-use crate::handshake::{HandshakeResponse41, HandshakeV10};
+use crate::{
+    command::{ColumnDefinition41, ComQuery, ErrPacket, ResultsetRow},
+    handshake::{HandshakeResponse41, HandshakeV10},
+};
 
 #[derive(Debug, Clone)]
 pub struct ConnectionOptions {
@@ -42,6 +45,36 @@ impl Connection {
         Ok(conn)
     }
 
+    pub fn query(&mut self, sql: &str) -> Result<String> {
+        debug!("query start");
+        self.sequence = 0;
+        let com_query = ComQuery::new(sql);
+        self.write_packet(&com_query.encode())?;
+        let pkt = self.read_packet()?;
+        if pkt[0] == 0xff {
+            let err = ErrPacket::decode(pkt)?;
+            return Ok(err.human_readable_text());
+        }
+        let col_count = pkt[0];
+        let mut cols = vec![];
+
+        for _ in 0..col_count {
+            cols.push(ColumnDefinition41::decode(self.read_packet()?)?);
+        }
+        let mut rows = vec![];
+        loop {
+            let pkt = self.read_packet()?;
+            let header = pkt[0];
+            if header == 0xfe {
+                break;
+            }
+            let row = ResultsetRow::decode(pkt)?;
+            rows.push(row);
+        }
+        debug!("query done");
+        Ok(format!("{:?}", rows))
+    }
+
     fn handshake(&mut self) -> Result<()> {
         debug!("handshake start");
         self.sequence = 0;
@@ -53,6 +86,10 @@ impl Connection {
             handshake.auth_plugin_data(),
         );
         self.write_packet(&response.encode())?;
+        let pkt = self.read_packet()?;
+        if pkt[0] != 0x00 {
+            bail!("not ok packet");
+        }
         debug!("handshake done");
 
         Ok(())

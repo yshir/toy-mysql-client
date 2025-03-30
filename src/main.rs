@@ -6,7 +6,7 @@ use toy_mysql_client::connection::{Connection, ConnectionOptions};
 fn main() -> Result<()> {
     env_logger::init();
 
-    let _ = Connection::new(ConnectionOptions {
+    let mut conn = Connection::new(ConnectionOptions {
         username: String::from("root"),
         password: String::from("root"),
         database: String::from("test"),
@@ -22,7 +22,10 @@ fn main() -> Result<()> {
         let sql = buf.trim();
         match sql {
             "exit" | "exit;" => break,
-            _ => (),
+            _ => {
+                let result = conn.query(sql)?;
+                println!("{}", result);
+            }
         }
     }
     Ok(())
